@@ -1,4 +1,5 @@
 
+
 name: ClipsXtra Zero - Radar GTA 6
 
 on:
@@ -7,13 +8,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   radar:
     runs-on: ubuntu-latest
     steps:
-      - name: Descargar archivos del proyecto
+      - name: Descargar proyecto
         uses: actions/checkout@v4
 
       - name: Preparar Python
@@ -22,5 +23,10 @@ jobs:
           python-version: "3.12"
 
       - name: Ejecutar radar
-        run: |
-          python -c "print('Radar ClipsXtra Zero iniciado')"
+        run: python radar.py
+
+      - name: Guardar resultados
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-radar-gta6
+          path: resultados/radar.json
