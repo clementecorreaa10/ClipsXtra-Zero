@@ -23,7 +23,7 @@ jobs:
           python-version: "3.12"
 
       - name: Ejecutar radar
-        run: python radar.py
+        run: python .github/workflows/radar.py
 
       - name: Guardar resultados
         uses: actions/upload-artifact@v4
