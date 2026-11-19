@@ -1,0 +1,26 @@
+
+name: ClipsXtra Zero - Radar GTA 6
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar archivos del proyecto
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Ejecutar radar
+        run: |
+          python -c "print('Radar ClipsXtra Zero iniciado')"
