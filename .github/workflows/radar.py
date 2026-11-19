@@ -3,8 +3,10 @@ import json
 import os
 import urllib.parse
 import urllib.request
-import xml.etree.ElementTree as ET
+import urllib.error
 from datetime import datetime, timezone
+
+API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
 QUERIES = [
     "GTA 6",
@@ -15,53 +17,53 @@ QUERIES = [
     "TheGrefg GTA 6",
 ]
 
-ATOM = "{http://www.w3.org/2005/Atom}"
-YT = "{http://www.youtube.com/xml/schemas/2015}"
+def buscar_videos(query):
+    if not API_KEY:
+        raise RuntimeError("Falta configurar YOUTUBE_API_KEY")
 
-def buscar_youtube(query):
-    url = (
-        "https://www.youtube.com/feeds/videos.xml?search_query="
-        + urllib.parse.quote(query)
-    )
+    params = urllib.parse.urlencode({
+        "part": "snippet",
+        "q": query,
+        "type": "video",
+        "maxResults": 10,
+        "order": "date",
+        "key": API_KEY
+    })
 
-    request = urllib.request.Request(
-        url,
-        headers={"User-Agent": "Mozilla/5.0 ClipsXtraZero/1.0"}
-    )
+    url = "https://www.googleapis.com/youtube/v3/search?" + params
+    request = urllib.request.Request(url)
 
     try:
-        with urllib.request.urlopen(request, timeout=25) as response:
-            xml = response.read()
+        with urllib.request.urlopen(request, timeout=30) as response:
+            data = json.loads(response.read().decode("utf-8"))
 
-        root = ET.fromstring(xml)
         videos = []
 
-        for entry in root.findall(ATOM + "entry"):
-            video_id = entry.findtext(YT + "videoId")
-            if not video_id:
-                continue
+        for item in data.get("items", []):
+            snippet = item["snippet"]
+            video_id = item["id"]["videoId"]
 
             videos.append({
-                "titulo": entry.findtext(ATOM + "title"),
-                "creador": entry.findtext(ATOM + "author/" + ATOM + "name"),
-                "fecha": entry.findtext(ATOM + "published"),
+                "titulo": snippet["title"],
+                "creador": snippet["channelTitle"],
+                "fecha": snippet["publishedAt"],
                 "video_id": video_id,
-                "enlace": "https://www.youtube.com/watch?v=" + video_id,
+                "enlace": f"https://www.youtube.com/watch?v={video_id}",
                 "busqueda": query
             })
 
         return videos
 
-    except Exception as error:
-        print(f"Error buscando {query}: {error}")
-        return []
+    except urllib.error.HTTPError as error:
+        detalle = error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"YouTube API error {error.code}: {detalle}")
 
 resultados = []
 vistos = set()
 
 for query in QUERIES:
     print(f"Buscando: {query}")
-    for video in buscar_youtube(query):
+    for video in buscar_videos(query):
         if video["video_id"] not in vistos:
             vistos.add(video["video_id"])
             resultados.append(video)
@@ -79,7 +81,3 @@ with open("resultados/radar.json", "w", encoding="utf-8") as archivo:
 
 print(f"Radar terminado. Videos encontrados: {len(resultados)}")
 
-with open("resultados/radar.json", "w", encoding="utf-8") as archivo:
-    json.dump(resultados, archivo, ensure_ascii=False, indent=2)
-
-print(f"Radar ejecutado: {len(resultados)} búsquedas preparadas.")
